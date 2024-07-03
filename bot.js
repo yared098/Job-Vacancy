@@ -39,7 +39,7 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
     const jobsData = await fetchJobsData();
     const jobsItem = jobsData.find(item => item.id === jobsId);
     if (jobsItem) {
-      bot.sendMessage(chatId, `Title: ${jobsItem.title}\nDescription: ${jobsItem.dis}\nURL: ${jobsItem.url}`, {
+      bot.sendMessage(chatId, ` ${jobsItem.title}\n ${jobsItem.dis}\nURL: ${jobsItem.url}`, {
         reply_markup: {
           inline_keyboard: [
             [{ text: 'Apply', callback_data: `apply_${jobsId}` }]
@@ -59,6 +59,7 @@ bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId, 'Welcome to the job vacancy bot!');
 });
+let pendingCVApplications = {};
 
 // Handle apply button click
 bot.on('callback_query', async (callbackQuery) => {
@@ -69,6 +70,7 @@ bot.on('callback_query', async (callbackQuery) => {
     const jobsId = parseInt(data.split('_')[1], 10);
     const jobsData = await fetchJobsData();
     const job = jobsData.find(item => item.id === jobsId);
+
     if (job) {
       bot.sendMessage(message.chat.id, 'Please share your phone number and username:', {
         reply_markup: {
@@ -80,21 +82,81 @@ bot.on('callback_query', async (callbackQuery) => {
       });
 
       bot.once('contact', async (msg) => {
-        try {
-          const phoneNumber = msg.contact.phone_number;
-          const username = msg.from.username;
-          // console.log(username+ "is.................");
-          // Send the data to the job poster
-          await bot.sendMessage(job.username, `New job application:\nJob ID: ${job.id}\nTitle: ${job.title}\nPhone Number: ${phoneNumber}\nApplicant Username: ${username}`);
+        const phoneNumber = msg.contact.phone_number;
+        const username = msg.from.username;
 
-          bot.sendMessage(message.chat.id, 'Your application has been submitted successfully!');
-        } catch (error) {
-          console.error('Error sending application data:', error);
-          bot.sendMessage(message.chat.id, 'There was an error submitting your application. Please try again later.');
+        if (job.applytype === 'normal') {
+          try {
+            // Send the data to the job poster
+            await bot.sendMessage(job.username, `New job application:\nJob ID: ${job.id}\nTitle: ${job.title}\nPhone Number: ${phoneNumber}\nApplicant Username: ${username}`, {
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: 'Accept', callback_data: `accept_${username}_${phoneNumber}` }],
+                  [{ text: 'Decline', callback_data: `decline_${username}` }]
+                ]
+              }
+            });
+
+            bot.sendMessage(message.chat.id, 'Your application has been submitted successfully!');
+          } catch (error) {
+            console.error('Error sending application data:', error);
+            bot.sendMessage(message.chat.id, 'There was an error submitting your application. Please try again later.');
+          }
+        } else {
+          pendingCVApplications[message.chat.id] = {
+            job,
+            phoneNumber,
+            username
+          };
+
+          bot.sendMessage(message.chat.id, 'Please send your CV as a PDF file.',
+            {
+              reply_markup: {
+                remove_keyboard: true
+              }
+            }
+          );
         }
       });
     } else {
       bot.sendMessage(message.chat.id, 'Invalid job ID. Please try again.');
+    }
+  } else if (data.startsWith('accept_')) {
+    const [_, username, phoneNumber] = data.split('_');
+
+    bot.sendMessage(message.chat.id, `Application accepted for user @${username}. Phone number: ${phoneNumber}`);
+    bot.sendMessage(username, 'Your application has been accepted!');
+  } else if (data.startsWith('decline_')) {
+    const username = data.split('_')[1];
+
+    bot.sendMessage(message.chat.id, `Application declined for user @${username}.`);
+    bot.sendMessage(username, 'Your application has been rejected.');
+  }
+});
+
+bot.on('document', async (msg) => {
+  const chatId = msg.chat.id;
+
+  if (pendingCVApplications[chatId]) {
+    try {
+      const { job, phoneNumber, username } = pendingCVApplications[chatId];
+      delete pendingCVApplications[chatId];
+
+      if (msg.document.mime_type === 'application/pdf') {
+        const fileId = msg.document.file_id;
+
+        // Send the CV PDF to the job poster
+        await bot.sendDocument(job.username, fileId, {}, {
+          caption: `New job application:\nJob ID: ${job.id}\nTitle: ${job.title}\nApplicant Username: @${username}\nPhone Number: ${phoneNumber}`
+        });
+
+        bot.sendMessage(chatId, 'Your application has been submitted successfully!');
+      } else {
+        bot.sendMessage(chatId, 'Please upload a valid PDF file.');
+      }
+    } catch (error) {
+      console.error('Error sending CV:', error);
+      bot.sendMessage(chatId, 'There was an error submitting your application. Please try again later.');
     }
   }
 });
@@ -103,16 +165,25 @@ bot.on('callback_query', async (callbackQuery) => {
 bot.onText(/\/post/, async (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId, 'Please provide the job ID you are interested in:');
-  
+
   bot.once('message', async (msg) => {
     const jobsId = parseInt(msg.text, 10);
     const jobsData = await fetchJobsData();
     const jobsItem = jobsData.find(item => item.id === jobsId);
-    
+
     if (jobsItem) {
       const botUsername = 'yeneridebot'; // Replace with your bot's username
       const deepLinkUrl = `https://t.me/${botUsername}?start=jobs_${jobsId}`;
-      
+
+
+      // Generate the caption and truncate if necessary
+      let caption = `${jobsItem.title}\n${jobsItem.sdes}\n${jobsItem.url}`;
+      const captionMaxLength = 1024;
+
+      if (caption.length > captionMaxLength) {
+        caption = caption.substring(0, captionMaxLength - 3) + '...';
+      }
+
       // Prepare message options
       let messageOptions = {
         reply_markup: {
@@ -120,22 +191,30 @@ bot.onText(/\/post/, async (msg) => {
             [{ text: 'Apply', callback_data: `apply_${jobsId}` }]
           ]
         },
-        parse_mode: 'Markdown'
+        parse_mode: 'Markdown',
+        //  caption: `${jobsItem.title}\n ${jobsItem.dis}\nURL: ${jobsItem.url}`
+        caption: caption
       };
 
+      // this is send to the  channel  deap linking 
+      let messageOptions_channel = {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: `${jobsItem.btnname}`, url: deepLinkUrl }]
+          ]
+        },
+        // caption: `${jobsItem.title}\n ${jobsItem.dis}\nURL: ${jobsItem.url}`
+        caption: caption
+      }
+
       if (jobsItem.imgurl) {
-        // Truncate caption if it's too long
-        const caption = `Title: ${jobsItem.title}\nDescription: ${jobsItem.dis}\nURL: ${jobsItem.url}`;
-        messageOptions.caption = caption.length > 200 ? caption.substring(0, 200) + '...' : caption; // Example: Limiting caption to 200 characters
-        
         try {
-          const sentMessage = await bot.sendPhoto(chatId, jobsItem.imgurl, messageOptions); // Use sendPhoto method for sending images
-          bot.sendMessage(channelId, `Title: ${jobsItem.title}\nDescription: ${truncateText(jobsItem.dis, 10)}`, {
-            reply_markup: {
-              inline_keyboard: [
-                [{ text: `${jobsItem.btnname}`, url: deepLinkUrl }]
-              ]
-            }
+          // Send photo with caption and inline keyboard
+          const sentMessage = await bot.sendPhoto(channelId, jobsItem.imgurl, messageOptions_channel);
+
+          // Send a separate message to the channel with a truncated description and apply button
+          await bot.sendMessage(chatId, ` ${jobsItem.title}\n ${truncateText(jobsItem.dis, 10)}`, {
+            messageOptions
           });
           console.log('Message sent successfully:', sentMessage);
         } catch (error) {
@@ -150,7 +229,6 @@ bot.onText(/\/post/, async (msg) => {
     }
   });
 });
-
 
 // Handle /webapp command
 bot.onText(/\/webapp/, (msg) => {
