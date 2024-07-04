@@ -57,8 +57,10 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
 // Handle /start command without parameter
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, 'Welcome to the job vacancy bot!');
+  bot.sendMessage(chatId, 'Loading jobs detail.....!');
 });
+
+
 let pendingCVApplications = {};
 
 // Handle apply button click
@@ -72,10 +74,10 @@ bot.on('callback_query', async (callbackQuery) => {
     const job = jobsData.find(item => item.id === jobsId);
 
     if (job) {
-      bot.sendMessage(message.chat.id, 'Please share your phone number and username:', {
+      bot.sendMessage(message.chat.id, 'ስልክ ቁጥርዎን ያጋሩ and username:', {
         reply_markup: {
           keyboard: [
-            [{ text: 'Share my phone number', request_contact: true }]
+            [{ text: 'እባክዎን ስልክ ቁጥርዎን ያጋሩ', request_contact: true }]
           ],
           one_time_keyboard: true
         }
@@ -88,7 +90,7 @@ bot.on('callback_query', async (callbackQuery) => {
         if (job.applytype === 'normal') {
           try {
             // Send the data to the job poster
-            await bot.sendMessage(job.username, `New job application:\nJob ID: ${job.id}\nTitle: ${job.title}\nPhone Number: ${phoneNumber}\nApplicant Username: ${username}`, {
+            await bot.sendMessage(job.telegram_id, `New job application:\nJob ID: ${job.id}\nTitle: ${job.title}\nPhone Number: ${phoneNumber}\nApplicant Username: ${username}`, {
               reply_markup: {
                 inline_keyboard: [
                   [{ text: 'Accept', callback_data: `accept_${username}_${phoneNumber}` }],
@@ -146,7 +148,7 @@ bot.on('document', async (msg) => {
         const fileId = msg.document.file_id;
 
         // Send the CV PDF to the job poster
-        await bot.sendDocument(job.username, fileId, {}, {
+        await bot.sendDocument(job.telegram_id, fileId, {}, {
           caption: `New job application:\nJob ID: ${job.id}\nTitle: ${job.title}\nApplicant Username: @${username}\nPhone Number: ${phoneNumber}`
         });
 
@@ -203,20 +205,20 @@ bot.onText(/\/post/, async (msg) => {
             [{ text: `${jobsItem.btnname}`, url: deepLinkUrl }]
           ]
         },
-        // caption: `${jobsItem.title}\n ${jobsItem.dis}\nURL: ${jobsItem.url}`
-        caption: caption
+        caption: caption 
       }
 
       if (jobsItem.imgurl) {
         try {
-          // Send photo with caption and inline keyboard
+          // Send photo with caption and inline keyboard  in the channel
           const sentMessage = await bot.sendPhoto(channelId, jobsItem.imgurl, messageOptions_channel);
-
+          // send message to the bot 
+          await bot.sendMessage(chatId,`successfully posted \nJob id :${jobsItem.id}  \n${jobsItem.title} \n Company user name ${jobsItem.username}`);
           // Send a separate message to the channel with a truncated description and apply button
-          await bot.sendMessage(chatId, ` ${jobsItem.title}\n ${truncateText(jobsItem.dis, 10)}`, {
-            messageOptions
-          });
-          console.log('Message sent successfully:', sentMessage);
+          // await bot.sendMessage(chatId, ` ${jobsItem.title}\n ${truncateText(jobsItem.dis, 10)}`, {
+          //   messageOptions
+          // });
+         // console.log('Message sent successfully:', sentMessage);
         } catch (error) {
           console.error('Error sending message:', error.response.body);
           bot.sendMessage(chatId, 'There was an error sending the job details. Please try again later.');
