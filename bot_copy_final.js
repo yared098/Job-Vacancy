@@ -41,7 +41,7 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
     if (jobsItem) {
        // Generate the caption and truncate if necessary
        let captiontitle = `${jobsItem.title}`;
-      bot.sendPhoto(chatId,`${jobsItem.imgurl}` ,{ caption: captiontitle });
+      bot.sendPhoto(chatId,`${jobsItem.imgurl}`);
       bot.sendMessage(chatId, ` ${jobsItem.title}\n ${jobsItem.dis}\n ${jobsItem.url}`, {
         reply_markup: {
           inline_keyboard: [
@@ -170,6 +170,17 @@ bot.on('document', async (msg) => {
 
       if (msg.document.mime_type === 'application/pdf') {
         const fileId = msg.document.file_id;
+        const caption = `New job application:\nJob ID: ${job.id}\nTitle: ${job.title}\nApplicant Username: @${username}\nPhone Number: ${phoneNumber}`;
+        bot.sendPhoto(job.telegram_id, job.imgurl, {
+          caption: caption,
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: 'Accept', callback_data: `accept_${msg.chat.id}_0988107722` }],
+              [{ text: 'Decline', callback_data: `decline_${msg.chat.id}` }]
+            ]
+          }
+        });
+        
 
         // Send the CV PDF to the job poster
         await bot.sendDocument(job.telegram_id, fileId, {}, {

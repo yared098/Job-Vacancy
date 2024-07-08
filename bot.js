@@ -9,17 +9,34 @@ const bot = new TelegramBot(token, { polling: true });
 
 const apiUrl = 'https://playapicevirtual-h012.com/api/job';
 
+// // Function to fetch jobs data from the API
+// const fetchJobsData = async () => {
+//   try {
+//     const response = await axios.get(apiUrl);
+//     return response.data;
+//   } catch (error) {
+//     console.error('Error fetching jobs data:', error);
+//     return [];
+//   }
+// };
+
 // Function to fetch jobs data from the API
 const fetchJobsData = async () => {
   try {
     const response = await axios.get(apiUrl);
-    return response.data;
+
+    // Check if the response contains data and return it, otherwise return an empty array
+    if (response.data && Array.isArray(response.data)) {
+      return response.data;
+    } else {
+      console.error('Unexpected response format:', response.data);
+      return [];
+    }
   } catch (error) {
-    console.error('Error fetching jobs data:', error);
+    console.error('Error fetching jobs data:', error.message);
     return [];
   }
 };
-
 // Function to truncate text to a specified number of lines
 const truncateText = (text, maxLines) => {
   const lines = text.split('\n');
@@ -41,8 +58,8 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
     if (jobsItem) {
        // Generate the caption and truncate if necessary
        let captiontitle = `${jobsItem.title}`;
-      bot.sendPhoto(chatId,`${jobsItem.imgurl}`);
-      bot.sendMessage(chatId, ` ${jobsItem.title}\n ${jobsItem.dis}\n ${jobsItem.url}`, {
+      bot.sendPhoto(chatId,`${jobsItem.jobImage}`);
+      bot.sendMessage(chatId, ` ${jobsItem.title}\n ${jobsItem.detailDescription}\n ${jobsItem.jobURL}`, {
         reply_markup: {
           inline_keyboard: [
             [{ text: 'Apply', callback_data: `apply_${jobsId}` }]
@@ -83,7 +100,22 @@ bot.on('callback_query', async (callbackQuery) => {
         bot.sendMessage(chatId, 'You have already applied for this job.');
         return;
       }
-
+      if (job.deadline && job.created_at) {
+        const deadlineTime = new Date(job.deadline).getTime();
+        const createdTime = new Date(job.created_at).getTime();
+      
+        if (isNaN(deadlineTime) || isNaN(createdTime)) {
+          // Handle case where job.deadline or job.created_at are not valid dates
+          bot.sendMessage(chatId, 'There was an error with the job details. Please try again later.');
+          return;
+        }
+      
+        if (deadlineTime <= createdTime) {
+          bot.sendMessage(chatId, 'The application deadline for this job has passed.');
+          return;
+        }
+      }
+      
       bot.sendMessage(chatId, 'ስልክ ቁጥርዎን ያጋሩ and @username:', {
         reply_markup: {
           keyboard: [
@@ -171,7 +203,7 @@ bot.on('document', async (msg) => {
       if (msg.document.mime_type === 'application/pdf') {
         const fileId = msg.document.file_id;
         const caption = `New job application:\nJob ID: ${job.id}\nTitle: ${job.title}\nApplicant Username: @${username}\nPhone Number: ${phoneNumber}`;
-        bot.sendPhoto(job.telegram_id, job.imgurl, {
+        bot.sendPhoto(job.telegram_id, job.jobImage, {
           caption: caption,
           reply_markup: {
             inline_keyboard: [
@@ -219,7 +251,7 @@ bot.onText(/\/post/, async (msg) => {
       const deepLinkUrl = `https://t.me/${botUsername}?start=jobs_${jobsId}`;
 
       // Generate the caption and truncate if necessary
-      let caption = `${jobsItem.title}\n${jobsItem.sdes}\n${jobsItem.url}`;
+      let caption = `${jobsItem.smalldescription}\n${jobsItem.jobURL}`;
       const captionMaxLength = 1024;
 
       if (caption.length > captionMaxLength) {
@@ -241,16 +273,16 @@ bot.onText(/\/post/, async (msg) => {
       let messageOptions_channel = {
         reply_markup: {
           inline_keyboard: [
-            [{ text: `${jobsItem.btnname}`, url: deepLinkUrl }]
+            [{ text: `${jobsItem.buttonName}`, url: deepLinkUrl }]
           ]
         },
         caption: caption
       }
 
-      if (jobsItem.imgurl) {
+      if (jobsItem.jobImage) {
         try {
           // Send photo with caption and inline keyboard  in the channel
-          const sentMessage = await bot.sendPhoto(channelId, jobsItem.imgurl, messageOptions_channel);
+          const sentMessage = await bot.sendPhoto(channelId, jobsItem.jobLogo, messageOptions_channel);
           // send message to the bot 
           await bot.sendMessage(chatId, `successfully posted \nJob id :${jobsItem.id}  \n${jobsItem.title} \n Company user name ${jobsItem.username}`);
         } catch (error) {
@@ -258,7 +290,7 @@ bot.onText(/\/post/, async (msg) => {
           bot.sendMessage(chatId, 'There was an error sending the job details. Please try again later.');
         }
       } else {
-        bot.sendMessage(chatId, `Title: ${jobsItem.title}\nDescription: ${jobsItem.dis}\nURL: ${jobsItem.url}`, messageOptions);
+        bot.sendMessage(chatId, `Title: ${jobsItem.title}\nDescription: ${jobsItem.detailDescription}\ ${jobsItem.jobURL}`, messageOptions);
       }
     } else {
       bot.sendMessage(chatId, 'Invalid job ID. Please try again.');
