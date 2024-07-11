@@ -7,8 +7,8 @@ require('dotenv').config(); // Load environment variables from .env file
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const channelId = process.env.TELEGRAM_CHANNEL_ID;
 
-const sendMessageAndPin = require('./send'); // Corrected import statement
-const botUsername = 'yeneridebot'; // Replace with your bot's username
+const sendPhotoAndPin = require('./send'); // Corrected import statement
+const botUsername = 'addis_ababa_job_bot'; // Replace with your bot's username
 
 const bot = new TelegramBot(token, { polling: true });
 
@@ -16,20 +16,27 @@ const apiUrl = 'https://playapicevirtual-h012.com/api/job';
 
 
 const contactInfo = `
-👷‍♂️👷‍♀️አዲስ አመልካች
-የመ/ቁ፦ 17
-ያመለከቱበት የስራ ዘርፉ፦ 8
-የአመልካች ስልክ ቁጥር፦ 0911021456
-የአመልካች ቴሌግራም ፦@edfdff
-የአመልካች ሀሳብ እና አስተያየት 👇👇👇
+💫ለቀጣሪዎች
+
+🔹ውድ ደንበኛችን በዚህ የቴሌግራም ቻናል ላይ ስራዎትን ለመለጠፍ እና ሀሳብ አስተያየትዎን ለመስጠት👇
+📮ቴሌግራም: @addis_ababa_jobs_1
+🔸 የለጠፉት የስራ ማስታወቂያ ላይ:👷‍♂️👷‍♀️ ያመለከቱ የስራ ፈላጊዎችን አድራሻ በዚሁ ቦት/Bot/ ላይ የምንልክልዎት ይሆናል ::
+
+💫ለተቀጣሪዎች
+
+💼 ውድ ደንበኛችን በለጠፍነው የስራ ቅጥር ማስታወቂያ ላይ ባመለከቱት የስራ አይነት ቀጣሪዎቹ ያላቸውን ግምገማ እና ምላሽ ለማወቅ ይህንኑ ቦት ይከታተሉ::
+
+👆 ወደ ላይ ይመልከቱ
+
+🙏ምርጫዎት ስላደረጉን ከልብ እናመስግናለን::
 `;
 
 // Handle the /pin command
 bot.onText(/\/pin/, (msg) => {
   const chatId = msg.chat.id;
 
-  // Call the sendMessageAndPin function
-  sendMessageAndPin(bot, botUsername, channelId);
+  // Call the sendPhotoAndPin function
+  sendPhotoAndPin(bot, botUsername, channelId);
 });
 
 // Function to fetch jobs data from the API
@@ -86,14 +93,14 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
       bot.sendMessage(chatId, 'Invalid job ID. Please try again.');
     }
   } else {
-    bot.sendMessage(chatId, 'Welcome! Use the button in the channel to get the latest job details.');
+    // bot.sendMessage(chatId, 'Welcome! Use the button in the channel to get the latest job details.');
   }
 });
 
 // Handle /start command without parameter
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  bot.sendMessage(chatId, 'Loading jobs detail.....!');
+  bot.sendMessage(chatId, 'ይጠብቁ......!');
 });
 
 
@@ -103,9 +110,6 @@ bot.onText(/\/contact/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(chatId, contactInfo);
 });
-
-
-
 
 // Record of user applications
 const userApplications = {};
@@ -237,8 +241,8 @@ bot.on('callback_query', async (callbackQuery) => {
   } else if (data.startsWith('accept_')) {
     const [_, chatId, phoneNumber] = data.split('_');
 
-    bot.sendMessage(message.chat.id, `The application has been accepted for user @${chatId}. Phone number: ${phoneNumber}`);
-    const caption = 'Your application has been accepted!';
+    bot.sendMessage(message.chat.id, `ማመልከቻው ለተጠቃሚው ተቀባይነት አግኝቷል @${chatId}. ስልክ ቁጥር: ${phoneNumber}`);
+    const caption = 'ማመልከቻዎ ተቀባይነት አግኝቷል!';
     bot.sendPhoto(chatId, `https://mycvcreator.com/administrator/postimages/64f4ccbe60a898.50803560.jpg`, { caption: caption })
       .then((response) => {
         console.log('Photo sent successfully:', response);
@@ -249,8 +253,8 @@ bot.on('callback_query', async (callbackQuery) => {
   } else if (data.startsWith('decline_')) {
     const username = data.split('_')[1];
 
-    bot.sendMessage(message.chat.id, `The application has been declined for user @${username}.`);
-    bot.sendMessage(username, 'Your application has been declined.');
+    bot.sendMessage(message.chat.id,  ` @${username} መተግበሪያው ለተጠቃሚው ተቀባይነት አላገኘም .`);
+    bot.sendMessage(username, 'ማመልከቻዎ ተቀባይነት አላገኘም።');
   }
 });
 
@@ -264,7 +268,7 @@ bot.on('document', async (msg) => {
 
       if (msg.document.mime_type === 'application/pdf') {
         const fileId = msg.document.file_id;
-        const caption = `New job application:\nJob ID: ${job.id}\nTitle: ${job.title}\nApplicant Username: @${username}\nPhone Number: ${phoneNumber}\nApplied Jobs: ${whichjob_applay}\nAbout: ${aboutText}`;
+        const caption = `👷‍♂️👷‍♀️አዲስ አመልካች:\nየመ/ቁ፦ ${job.id}\ያመለከቱበት የስራ ዘርፉ፦: ${job.title}\nየአመልካች ቴሌግራም ፦ @${username}\nየአመልካች ስልክ ቁጥር፦ ${phoneNumber}\nያመለከቱበት የስራ ዘርፉ፦  ${whichjob_applay}\nስለ አመልካች: ${aboutText}`;
         bot.sendPhoto(job.telegram_id, job.jobImage, {
           caption: caption,
           reply_markup: {
@@ -286,7 +290,7 @@ bot.on('document', async (msg) => {
 
         // Send the CV PDF to the job poster
         await bot.sendDocument(job.telegram_id, fileId, {}, {
-          caption: `New job application:\nJob ID: ${job.id}\nTitle: ${job.title}\nApplicant Username: @${username}\nPhone Number: ${phoneNumber}`
+          caption: `New job application:\nJob ID: ${job.id}\nTitle: ${job.title}\nየአመልካች ቴሌግራም ፦ @${username}\nየአመልካች ስልክ ቁጥር፦ ${phoneNumber}`
         });
 
         // Record the application
@@ -295,9 +299,9 @@ bot.on('document', async (msg) => {
         }
         userApplications[chatId].push(job.id);
 
-        bot.sendMessage(chatId, 'Your application has been successfully submitted!');
+        bot.sendMessage(chatId, 'ማመልከቻዎ በተሳካ ሁኔታ ገብቷል!');
       } else {
-        bot.sendMessage(chatId, 'The submitted document type is not supported. Please submit your CV in PDF, .doc, or .docx format.');
+        bot.sendMessage(chatId, 'የቀረበው የሰነድ አይነት አይደገፍም። እባክዎን CVዎን በፒዲኤፍ፣ .doc ወይም .docx ቅርጸት ያስገቡ።');
       }
     } catch (error) {
       console.error('Error sending CV:', error);
@@ -317,7 +321,7 @@ bot.onText(/\/post/, async (msg) => {
     const jobsItem = jobsData.find(item => item.id === jobsId);
 
     if (jobsItem) {
-      const botUsername = 'yeneridebot'; // Replace with your bot's username
+      const botUsername = 'addis_ababa_job_bot'; // Replace with your bot's username
       const deepLinkUrl = `https://t.me/${botUsername}?start=jobs_${jobsId}`;
 
       // Generate the caption and truncate if necessary
