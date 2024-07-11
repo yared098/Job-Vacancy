@@ -196,8 +196,9 @@ bot.on('callback_query', async (callbackQuery) => {
 
           if (job.applytype === 'normal') {
             try {
-              await bot.sendMessage(job.channel_id, `👷‍♂️👷‍♀️አዲስ አመልካች:\nየመ/ቁ፦: ${job.id}\nያመለከቱበት የስራ ዘርፉ፦ ${job.title}\nየአመልካች ስልክ ቁጥር፦ ${phoneNumber}\nየአመልካች ቴሌግራም  ${username}\nየአመልካች ሀሳብ እና አስተያየት ${aboutText}\nየአመልካች ሀሳብ እና አስተያየት ${whichjob_applay}`);
-              await bot.sendMessage(job.telegram_id, `👷‍♂️👷‍♀️አዲስ አመልካች:\nየመ/ቁ፦: ${job.id}\nያመለከቱበት የስራ ዘርፉ፦ ${job.title}\nየአመልካች ስልክ ቁጥር፦ ${phoneNumber}\nየአመልካች ቴሌግራም  ${username}\nየአመልካች ሀሳብ እና አስተያየት ${aboutText}\nየአመልካች ሀሳብ እና አስተያየት ${whichjob_applay}`, {
+              // await bot.sendMessage(job.channel_id, `👷‍♂️👷‍♀️አዲስ አመልካች:\nየመ/ቁ፦: ${job.id}\nያመለከቱበት የስራ ዘርፉ፦ ${whichjob_applay}\nየአመልካች ስልክ ቁጥር፦ +${phoneNumber}\nየአመልካች ቴሌግራም ፦ @${username}\nየአመልካች ሀሳብ እና አስተያየት፦\n👇👇👇👇👇👇👇👇👇👇👇👇👇👇\n ${aboutText}`);
+              await bot.sendMessage(job.telegram_id, `👷‍♂️👷‍♀️አዲስ አመልካች:\nየመ/ቁ፦: ${job.id}\nያመለከቱበት የስራ ዘርፉ፦ ${whichjob_applay}\nየአመልካች ስልክ ቁጥር፦ +${phoneNumber}\nየአመልካች ቴሌግራም ፦ @${username}\nየአመልካች ሀሳብ እና አስተያየት፦\n👇👇👇👇👇👇👇👇👇👇👇👇👇👇\n ${aboutText}
+                `, {
                 reply_markup: {
                   inline_keyboard: [
                     [{ text: 'Accept', callback_data: `accept_${chatId}_${phoneNumber}` }],
@@ -211,7 +212,12 @@ bot.on('callback_query', async (callbackQuery) => {
               }
               userApplications[chatId].push(jobsId);
 
-              bot.sendMessage(chatId, 'ማመልከቻዎ በተሳካ ሁኔታ ገብቷል!');
+              bot.sendMessage(chatId, `ማመልከቻዎ በተሳካ ሁኔታ ተጠናቋል ።
+
+ባመለከቱት የስራ ዓይነት ላይ የቀጣሪዎቹን ምላሽ ወደ  ቴሌግራም ቻናላችን Addis Ababa Jobs 
+ወይም @addis_ababa_jobs
+በመግባት 
+በስተቀኝ በኩል ከላይ (pin) የተደረገውን < ይቅጠሩ / ይቀጠሩ > button በመንካት ይከታተሉ ።`);
             } catch (error) {
               console.error('Error sending application data:', error);
               bot.sendMessage(chatId, 'There was an error submitting your application. Please try again later.');
@@ -242,8 +248,17 @@ bot.on('callback_query', async (callbackQuery) => {
     const [_, chatId, phoneNumber] = data.split('_');
 
     bot.sendMessage(message.chat.id, `ማመልከቻው ለተጠቃሚው ተቀባይነት አግኝቷል @${chatId}. ስልክ ቁጥር: ${phoneNumber}`);
-    const caption = 'ማመልከቻዎ ተቀባይነት አግኝቷል!';
-    bot.sendPhoto(chatId, `https://mycvcreator.com/administrator/postimages/64f4ccbe60a898.50803560.jpg`, { caption: caption })
+    const caption = `🎆🎆🎆 እንኳን ደስ አሎት
+ 
+💫Addis Ababa jobs በእርስዎ ማሽነፈ ደስታ ይሰማዋል።
+ 
+⁉️ማሳሰቢያ፦ ይህ መልዕክት የተላለፈው ከቀጣሪዎ ሲሆን ለመልክቱ ቀጣሪዎ ሙሉ ኃላፊነቱን ይወስዳል ።
+
+♦️ለበለጠ መረጃ
+📲 +${phoneNumber}
+
+👷‍♂️👷‍♀️አመልካች ከታች በተጠቀሰው የስራ ዘርፍ ላይ በቀጣሪዎ ተቀባይነት አግኝተዋል።👇👇👇`;
+    bot.sendPhoto(chatId, `https://i.ibb.co/1fhgnrJ/photo1720728411.jpg`, { caption: caption })
       .then((response) => {
         console.log('Photo sent successfully:', response);
       })
@@ -254,7 +269,7 @@ bot.on('callback_query', async (callbackQuery) => {
     const username = data.split('_')[1];
 
     bot.sendMessage(message.chat.id,  ` @${username} መተግበሪያው ለተጠቃሚው ተቀባይነት አላገኘም .`);
-    bot.sendMessage(username, 'ማመልከቻዎ ተቀባይነት አላገኘም።');
+    bot.sendMessage(username, ` ውድ ደንበኛችን ከዚህ በታች ባመለከቱት የስራ ዘርፍ ላይ ቀጣሪው ድርጅት በቂ የሰው ኃይል አግኝቱዓል👇👇👇`);
   }
 });
 
