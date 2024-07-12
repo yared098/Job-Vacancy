@@ -119,12 +119,21 @@ let pendingCVApplications = {};
 bot.on('callback_query', async (callbackQuery) => {
   const message = callbackQuery.message;
   const data = callbackQuery.data;
+  // this callback function is used to send message to the channel and channel will reponse to the user 
+  if (data.startsWith('send_response_')) {
+    const [_, username, jobtitile] = data.split('_').slice(1);
+    bot.sendMessage(username, `Job Title : ${jobtitile} \n your application for the job is not accepted, @${username}.`);
+    bot.answerCallbackQuery(callbackQuery.id);
+  }
+  // end of callback functions 
 
   if (data.startsWith('apply_')) {
     const jobsId = parseInt(data.split('_')[1], 10);
     const chatId = message.chat.id;
     const jobsData = await fetchJobsData();
     const job = jobsData.find(item => item.id === jobsId);
+    const jobtitile=job.title;
+    const channel_id=job.channel_id;
 
     if (job) {
       if (!job.telegram_id) {
@@ -189,20 +198,27 @@ bot.on('callback_query', async (callbackQuery) => {
             one_time_keyboard: true
           }
         });
-
+      
         bot.once('contact', async (msg) => {
           const phoneNumber = msg.contact.phone_number;
           const username = msg.from.username;
+          console.log(job);
+          
 
           if (job.applytype === 'normal') {
             try {
+              // bot.sendMessage(chatId, 'succussfully added your contactcontact  added', {
+              //   reply_markup: {
+              //     remove_keyboard: true
+              //   }
+              // });
               // await bot.sendMessage(job.channel_id, `👷‍♂️👷‍♀️አዲስ አመልካች:\nየመ/ቁ፦: ${job.id}\nያመለከቱበት የስራ ዘርፉ፦ ${whichjob_applay}\nየአመልካች ስልክ ቁጥር፦ +${phoneNumber}\nየአመልካች ቴሌግራም ፦ @${username}\nየአመልካች ሀሳብ እና አስተያየት፦\n👇👇👇👇👇👇👇👇👇👇👇👇👇👇\n ${aboutText}`);
               await bot.sendMessage(job.telegram_id, `👷‍♂️👷‍♀️አዲስ አመልካች:\nየመ/ቁ፦: ${job.id}\nያመለከቱበት የስራ ዘርፉ፦ ${whichjob_applay}\nየአመልካች ስልክ ቁጥር፦ +${phoneNumber}\nየአመልካች ቴሌግራም ፦ @${username}\nየአመልካች ሀሳብ እና አስተያየት፦\n👇👇👇👇👇👇👇👇👇👇👇👇👇👇\n ${aboutText}
                 `, {
                 reply_markup: {
                   inline_keyboard: [
-                    [{ text: 'Accept', callback_data: `accept_${chatId}_${phoneNumber}` }],
-                    [{ text: 'Decline', callback_data: `decline_${chatId}` }]
+                    [{ text: 'Accept', callback_data: `accept_${chatId}_${phoneNumber}_${jobtitile}`}],
+                    [{ text: 'Decline', callback_data: `decline_${chatId}_${jobtitile}_${channel_id}`}]
                   ]
                 }
               });
@@ -211,13 +227,18 @@ bot.on('callback_query', async (callbackQuery) => {
                 userApplications[chatId] = [];
               }
               userApplications[chatId].push(jobsId);
-
-              bot.sendMessage(chatId, `ማመልከቻዎ በተሳካ ሁኔታ ተጠናቋል ።
+              // remove inline keyboard
+              bot.sendMessage(chatId, `የስራ መደቡ መጠሪያ :-${jobtitile}\n ማመልከቻዎ በተሳካ ሁኔታ ተጠናቋል ።
 
 ባመለከቱት የስራ ዓይነት ላይ የቀጣሪዎቹን ምላሽ ወደ  ቴሌግራም ቻናላችን Addis Ababa Jobs 
 ወይም @addis_ababa_jobs
 በመግባት 
-በስተቀኝ በኩል ከላይ (pin) የተደረገውን < ይቅጠሩ / ይቀጠሩ > button በመንካት ይከታተሉ ።`);
+በስተቀኝ በኩል ከላይ (pin) የተደረገውን < ይቅጠሩ / ይቀጠሩ > button በመንካት ይከታተሉ ።`,
+{
+  reply_markup: {
+    remove_keyboard: true
+  }
+});
             } catch (error) {
               console.error('Error sending application data:', error);
               bot.sendMessage(chatId, 'There was an error submitting your application. Please try again later.');
@@ -245,10 +266,13 @@ bot.on('callback_query', async (callbackQuery) => {
       bot.sendMessage(chatId, 'Invalid job ID. Please try again.');
     }
   } else if (data.startsWith('accept_')) {
-    const [_, chatId, phoneNumber] = data.split('_');
+    const [_, chatId, phoneNumber,jobtitile] = data.split('_');
+    bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: message.chat.id, message_id: message.message_id });
 
     bot.sendMessage(message.chat.id, `ማመልከቻው ለተጠቃሚው ተቀባይነት አግኝቷል @${chatId}. ስልክ ቁጥር: ${phoneNumber}`);
-    const caption = `🎆🎆🎆 እንኳን ደስ አሎት
+     // send message o the telegram channel
+    bot.sendMessage(`@yeneRide`,`job title : ${jobtitile}  \nTelegram username  @${chatId} is accepted  `);
+    const caption = `የስራ መደቡ መጠሪያ :-${jobtitile}\n🎆🎆🎆 እንኳን ደስ አሎት
  
 💫Addis Ababa jobs በእርስዎ ማሽነፈ ደስታ ይሰማዋል።
  
@@ -266,10 +290,26 @@ bot.on('callback_query', async (callbackQuery) => {
         console.error('Error sending photo:', error);
       });
   } else if (data.startsWith('decline_')) {
-    const username = data.split('_')[1];
+    const [_, username, jobtitile,channel_id] = data.split('_');
+    // const username = data.split('_')[1];
+    bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: message.chat.id, message_id: message.message_id });
 
-    bot.sendMessage(message.chat.id,  ` @${username} መተግበሪያው ለተጠቃሚው ተቀባይነት አላገኘም .`);
-    bot.sendMessage(username, ` ውድ ደንበኛችን ከዚህ በታች ባመለከቱት የስራ ዘርፍ ላይ ቀጣሪው ድርጅት በቂ የሰው ኃይል አግኝቱዓል👇👇👇`);
+    bot.sendMessage(message.chat.id, ` channel id ${channel_id}   @${username} መተግበሪያው ለተጠቃሚው ተቀባይነት አላገኘም .`);
+    bot.sendMessage(username, `የስራ መደቡ መጠሪያ :-${jobtitile}\nውድ ደንበኛችን ከዚህ በታች ባመለከቱት የስራ ዘርፍ ላይ ቀጣሪው ድርጅት በቂ የሰው ኃይል አግኝቱዓል👇👇👇`);
+    // send message o the telegram channel
+    // bot.sendMessage(`@yeneRide`,`Telegram username  @${username} is rejected  by this job ${jtitile} `);
+    bot.sendMessage('@yeneRide', `Telegram username @${username} is rejected by this job ${jobtitile}`, {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: 'Send reject response',
+              callback_data: `send_response_${username}_${jobtitile}_${username}`
+            }
+          ]
+        ]
+      }
+    });
   }
 });
 
@@ -279,6 +319,9 @@ bot.on('document', async (msg) => {
   if (pendingCVApplications[chatId]) {
     try {
       const { job, phoneNumber, username, aboutText, whichjob_applay } = pendingCVApplications[chatId];
+      console.log(job);
+      console.log(whichjob_applay);
+      console.log(aboutText)
       delete pendingCVApplications[chatId];
 
       if (msg.document.mime_type === 'application/pdf') {
@@ -305,7 +348,10 @@ bot.on('document', async (msg) => {
 
         // Send the CV PDF to the job poster
         await bot.sendDocument(job.telegram_id, fileId, {}, {
-          caption: `New job application:\nJob ID: ${job.id}\nTitle: ${job.title}\nየአመልካች ቴሌግራም ፦ @${username}\nየአመልካች ስልክ ቁጥር፦ ${phoneNumber}`
+          caption: `New job application:\nJob ID: ${job.id}\nTitle: ${job.title}\nየአመልካች ቴሌግራም ፦ @${username}\nየአመልካች ስልክ ቁጥር፦ ${phoneNumber}`,
+          reply_markup: {
+            remove_keyboard: true
+          }
         });
 
         // Record the application
