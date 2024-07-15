@@ -81,14 +81,41 @@ bot.onText(/\/start (.+)/, async (msg, match) => {
     if (jobsItem) {
       // Generate the caption and truncate if necessary
       let captiontitle = `${jobsItem.title}`;
-      bot.sendPhoto(chatId, `${jobsItem.jobImage}`);
-      bot.sendMessage(chatId, ` ${jobsItem.title}\n ${jobsItem.detailDescription}\n ${jobsItem.jobURL}`, {
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: 'Apply', callback_data: `apply_${jobsId}` }]
-          ]
-        }
-      });
+      //  this is  for make to send image with
+       // Generate the caption and truncate if necessary
+       let caption = `${jobsItem.detailDescription}\n${jobsItem.jobURL}`;
+       const captionMaxLength = 1024;
+ 
+       if (caption.length > captionMaxLength) {
+         caption = `${jobsItem.detailDescription}`;
+         bot.sendMessage(chatId,caption,
+          {
+            reply_markup: {
+              inline_keyboard: [
+                [{ text: 'Apply', callback_data: `apply_${jobsId}` }]
+              ]
+            }
+         });
+       }else{
+        bot.sendPhoto(chatId,jobsItem.jobImage,{
+          caption:caption,
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: 'Apply', callback_data: `apply_${jobsId}` }]
+            ]
+          }
+        });
+       }
+
+      // let captian=`${jobsItem.detailDescription} ${jobsItem.jobURL}`;
+      // bot.sendPhoto(chatId, `${jobsItem.jobImage}`);
+      // bot.sendMessage(chatId, ` ${jobsItem.title}\n ${jobsItem.detailDescription}\n ${jobsItem.jobURL}`, {
+      //   reply_markup: {
+      //     inline_keyboard: [
+      //       [{ text: 'Apply', callback_data: `apply_${jobsId}` }]
+      //     ]
+      //   }
+      // });
     } else {
       bot.sendMessage(chatId, 'Invalid job ID. Please try again.');
     }
@@ -130,7 +157,8 @@ bot.on('callback_query', async (callbackQuery) => {
     const jobsData = await fetchJobsData();
     const job = jobsData.find(item => item.id === jobsId);
     const jobtitile = job.title;
-    const channel_id = job.channel_id;
+    const channel_id = job.username;
+
 
     if (job) {
       if (!job.telegram_id) {
@@ -211,11 +239,11 @@ bot.on('callback_query', async (callbackQuery) => {
               //   }
               // });
               // await bot.sendMessage(job.channel_id, `አዲስ አመልካች:\nየመ/ቁ፦: ${job.id}\nያመለከቱበት የስራ ዘርፉ፦ ${whichjob_applay}\nየአመልካች ስልክ ቁጥር፦ +${phoneNumber}\nየአመልካች ቴሌግራም ፦ @${username}\nየአመልካች ሀሳብ እና አስተያየት፦\n👇👇👇👇👇👇👇👇👇👇👇👇👇👇\n ${aboutText}`);
-              await bot.sendMessage(job.telegram_id, `አዲስ አመልካች:\nየመ/ቁ፦: ${job.id}\nያመለከቱበት የስራ ዘርፉ፦ ${whichjob_applay}\nየአመልካች ስልክ ቁጥር፦ +${phoneNumber}\nየአመልካች ቴሌግራም ፦ @${username}\nየአመልካች ሀሳብ እና አስተያየት፦\n👇👇👇👇👇👇👇👇👇👇👇👇👇👇\n ${aboutText}
+              await bot.sendMessage(job.telegram_id, `#d${chatId}\nአዲስ አመልካች:\nየመ/ቁ፦: ${job.id}\nያመለከቱበት የስራ ዘርፉ፦ ${whichjob_applay}\nየአመልካች ስልክ ቁጥር፦ +${phoneNumber}\nየአመልካች ቴሌግራም ፦ @${username}\nየአመልካች ሀሳብ እና አስተያየት፦\n👇👇👇👇👇👇👇👇👇👇👇👇👇👇\n ${aboutText}
                 `, {
                 reply_markup: {
                   inline_keyboard: [
-                    [{ text: 'Accept', callback_data: `accept_${chatId}_${phoneNumber}_${jobtitile}` }],
+                    [{ text: 'Accept', callback_data: `accept_${chatId}_${phoneNumber}_${jobtitile}_${channel_id}` }],
                     [{ text: 'Decline', callback_data: `decline_${chatId}_${jobtitile}_${channel_id}` }]
                   ]
                 }
@@ -264,7 +292,7 @@ bot.on('callback_query', async (callbackQuery) => {
       await bot.sendMessage(chatId, 'Invalid job ID. Please try again.');
     }
   } else if (data.startsWith('accept_')) {
-    const [_, chatId, phoneNumber, jobtitile] = data.split('_');
+    const [_, chatId, phoneNumber, jobtitile,channel_id] = data.split('_');
     await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: message.chat.id, message_id: message.message_id });
 
     await bot.sendMessage(message.chat.id, `ማመልከቻው ለተጠቃሚው ተቀባይነት አግኝቷል #d${chatId}. ስልክ ቁጥር: ${phoneNumber}`);
@@ -277,7 +305,7 @@ bot.on('callback_query', async (callbackQuery) => {
   ⁉️ማሳሰቢያ፦ ይህ መልዕክት የተላለፈው ከቀጣሪዎ ሲሆን ለመልክቱ ቀጣሪዎ ሙሉ ኃላፊነቱን ይወስዳል ።
 
   ♦️ለበለጠ መረጃ
- 📲 +${phoneNumber}\n${jobtitile}`;
+ 📲 +${channel_id}\n${jobtitile}`;
     await bot.sendPhoto(chatId, `https://i.ibb.co/1fhgnrJ/photo1720728411.jpg`, { caption: caption })
       .then((response) => {
         // console.log('Photo sent successfully:', response);
@@ -290,7 +318,7 @@ bot.on('callback_query', async (callbackQuery) => {
     // const username = data.split('_')[1];
     await bot.editMessageReplyMarkup({ inline_keyboard: [] }, { chat_id: message.chat.id, message_id: message.message_id });
 
-    await bot.sendMessage(message.chat.id, ` channel id ${channel_id}   #d${username} መተግበሪያው ለተጠቃሚው ተቀባይነት አላገኘም .`);
+    await bot.sendMessage(message.chat.id, `channel id ${channel_id}   #d${username} መተግበሪያው ለተጠቃሚው ተቀባይነት አላገኘም .`);
     await bot.sendMessage(username, ` ቀጣሪው ድርጅት በቂ የሰው ኃይል አግኝቱዓል👇👇👇\n${jobtitile}`);
     // send message o the telegram channel
     // bot.sendMessage(`@yeneRide`,`Telegram username  @${username} is rejected  by this job ${jtitile} `);
@@ -436,7 +464,9 @@ bot.onText(/\/post/, async (msg) => {
           bot.sendMessage(chatId, 'There was an error sending the job details. Please try again later.');
         }
       } else {
-        bot.sendMessage(chatId, `Title: ${jobsItem.title}\nDescription: ${jobsItem.detailDescription}\ ${jobsItem.jobURL}`, messageOptions);
+        
+        bot.sendMessage(chatId, `successfully posted `);
+       await bot.sendPhoto(channelId, jobsItem.jobLogo, messageOptions_channel);
       }
     } else {
       bot.sendMessage(chatId, 'Invalid job ID. Please try again.');
