@@ -23,7 +23,7 @@ Post_jobs(bot);
 // Handle /start command without parameters
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
-  userState[chatId] = { step: 1 };
+  userState[chatId] = { step: 0 };
   bot.sendMessage(chatId, 'ይጠብቁ........❕');
 });
 
@@ -62,7 +62,7 @@ bot.on('callback_query', async (callbackQuery) => {
       }
 
       userState[chatId].job = job;
-      userState[chatId].step = 2; // Move to the next step
+      userState[chatId].step = 1; // Move to the next step
       askForContact(message, chatId, job);
     } else {
       await bot.sendMessage(chatId, 'Invalid job ID. Please try again.');
@@ -91,13 +91,14 @@ bot.on('contact', async (msg) => {
     });
 
     const job = userState[chatId].job;
-    if (job.jobamount === 0) {
-      console.log("FALSE this job is ")
-      userState[chatId].whichJobApply = 'All'; // Set whichJobApply to "All"
+    if (job.jobamount === false) {
+      userState[chatId].step = 3; // Move to the next step
+      console.log("applay with no more jobs ");
       await askAboutYourself(chatId, job);
     } else {
+      console.log("applay with more than one jobs ")
+      userState[chatId].step = 3; // Move to the next step
       await askJobId(chatId, job);
-      console.log("TRUE this job is ")
     }
   }
 });
@@ -114,46 +115,41 @@ bot.on('message', async (msg) => {
         userState[chatId].whichJobApply = whichJobApply;
         userState[chatId].step = 4; // Move to the next step
         await askAboutYourself(chatId, userState[chatId].job);
-        console.log("this is step 3 ");
-      } else {
-        // If jobamount is false, skip to step 4
-        userState[chatId].step = 4;
-        await askAboutYourself(chatId, userState[chatId].job);
       }
       break;
     case 4:
-      console.log("this is step 4 ..... ");
       const aboutText = msg.text;
       if (!aboutText || aboutText.length < 20 || aboutText.length > 250) {
         await bot.sendMessage(chatId, '❌የሥራ ማመልከቻው ከ20 ፊደላት በታች መሆን አይችልም:: እባክዎትን ዳግም ይፃፋ።');
         await askAboutYourself(chatId, userState[chatId].job);
       } else {
         userState[chatId].aboutText = aboutText;
+        console.log(userState[chatId].job.applytype);
+        console.log("applay type is ")
         if (userState[chatId].job.applytype === 'normal') {
           await Applaywith_Normal(chatId, userState[chatId].job);
-          console.log("should not ask the user for CV");
+          console.log("should  not ask the use cv")
         } else {
           await Applay_withcv(chatId, userState[chatId].job, msg);
-          console.log("should ask the user for CV");
+          console.log("should ask the user cv cv cv cv")
         }
-        // Clear user state after application
-        delete userState[chatId];
+       
       }
       break;
     default:
+      userState[chatId]=[];
       break;
   }
 });
+
 // Function to ask for job ID
 const askJobId = async (chatId, job) => {
-  console.log("asking job applay type...")
   await bot.sendMessage(chatId, 'ከተጠቀሱት የስራ መደቦች ውስጥ የሚያመለክቱበትን የስራ መደብ መጠሪያ ያስገቡ⁉️');
   userState[chatId].step = 3; // Move to the next step
 };
 
 // Function to ask for about text
 const askAboutYourself = async (chatId, job) => {
-  console.log("asking about your seldf")
   await bot.sendMessage(chatId, 'ለሚያመልክቱት ስራ ብቁ እንደሆኑ የሚገልጽ አጠር ያለ የማመልከቻ መልዕክት ይፃፋ⁉️');
   userState[chatId].step = 4; // Move to the next step
 };
@@ -169,6 +165,81 @@ const askForContact = (msg, chatId, job) => {
     }
   });
 };
+
+// // Function to ask for job ID
+// const askJobId = async (chatId,job) => {
+//   await bot.sendMessage(chatId, 'ከተጠቀሱት የስራ መደቦች ውስጥ የሚያመለክቱበትን የስራ መደብ መጠሪያ ያስገቡ⁉️');
+//   bot.once('message', async (msg) => {
+//     const whichJobApply = msg.text;
+//     userState[chatId].whichJobApply = whichJobApply;
+//     await askAboutYourself(chatId,job);
+//   });
+// };
+
+//       // Function to ask for about text
+//  const askAboutYourself = async (chatId,job) => {
+//     await bot.sendMessage(chatId, `ለሚያመለክቱት ስራ ብቁ እንደሆኑ የሚገልጽ አጠር ያለ የማመልከቻ መልዕክት ይፃፋ⁉️`);
+//     bot.once('message', async (msg) => {
+//       const aboutText = msg.text;
+//       if (aboutText.length < 20 || aboutText.length > 250) {
+//         await bot.sendMessage(chatId, '❌የሥራ ማመልከቻው ከ20 ፊደላት በታች መሆን አይችልም:: እባክዎትን ዳግም ይፃፋ።');
+//         await askAboutYourself(chatId,job);
+//       } 
+//         else{
+//           //  console.log(job);
+//         userState[chatId].aboutText = aboutText;
+//         if (job.applytype === 'normal') {
+//           console.log("normal applay")
+//           await Applaywith_Normal(chatId,job);
+//         } else {
+//           console.log(userState[chatId].whichJobApply)
+//           console.log("applay with cv")
+//           userState[chatId].step = 4; // Move to the next step
+//           await  Applay_withcv(chatId,job,msg);
+//         }
+//         }
+//     });
+//   };
+// // Function to handle contact request
+//   const askForContact = (msg,chatId,job) => {
+//     bot.sendMessage(chatId, `እባክዎትን\n☎️ ከታች ያለውን 'ስልክ ቁጥርዎን ያጋሩ' የሚለውን በመጫን ስልክ ቁጥሮን ያጋሩ::`, {
+//       reply_markup: {
+//         keyboard: [
+//           [{ text: 'ስልክ ቁጥሮትን ለማጋራት እዚህ ጋር ይጫኑ👇', request_contact: true }]
+//         ],
+//         one_time_keyboard: true
+//       }
+//     });
+
+//     bot.once('contact', async (msg) => {
+//       const phoneNumber = msg.contact.phone_number;
+//       const username = msg.from.username;
+//       userState[chatId].phoneNumber = phoneNumber;
+//       userState[chatId].username = username;
+
+//       // Remove the custom keyboard
+//       bot.sendMessage(chatId, `.`, {
+//         reply_markup: {
+//           remove_keyboard: true
+//         }
+//       });
+       
+//       // if (userState[chatId].jobId) {
+//       //   askJobId(chatId);
+//       // } else {
+//       //   await askAboutYourself(chatId);
+//       // }
+//       if (job.jobamount == false) {
+//         console.log("job amount is false ");
+//         userState[chatId].step = 3; // Move to the next step
+//         askAboutYourself(chatId,job);
+//       } else {
+//         userState[chatId].step = 3; // Move to the next step
+//         await askJobId(chatId,job);
+//         console.log("job amount is true ask job id ");
+//       }
+//     });
+//   };
 
 // Function to fetch jobs data from the API
 const fetchJobsData = async () => {
@@ -187,6 +258,9 @@ const fetchJobsData = async () => {
     return [];
   }
 };
+
+
+
 
 
 const contactInfo = `
@@ -220,7 +294,7 @@ bot.onText(/\/contact/, (msg) => {
 // Handle the /pin command
 bot.onText(/\/pin/, (msg) => {
   const chatId = msg.chat.id;
-  userState[chatId]=[];
+
   // Call the sendPhotoAndPin function
   sendPhotoAndPin(bot, botUsername, channelId);
 });
@@ -276,8 +350,7 @@ bot.on('document', async (msg) => { const chatId = msg.chat.id;
         // Record the application
         if (!userApplications[chatId]) {
           userApplications[chatId] = [];
-        //  this is add to in order it clear the history messahe 
-          userState[chatId]=[];
+          userState[chatId]=[]
         }
         userApplications[chatId].push(job.id);
 
@@ -307,7 +380,6 @@ bot.on('document', async (msg) => { const chatId = msg.chat.id;
 // Handle /start command with parameter
 bot.onText(/\/start (.+)/, async (msg, match) => {
 
-  // userState[chatId]=[];
   const chatId = msg.chat.id;
   const param = match[1]; // the parameter passed to the /start command
   if (param.startsWith("contact")) {
@@ -520,7 +592,7 @@ function Applay_withcv(chatId,job,msg) {
     aboutText,
     whichjob_applay
   };
-  // console.log(pendingCVApplications);
+  console.log(pendingCVApplications);
   console.log("pending ..................")
 
   bot.sendMessage(chatId, 'እባክዎትን \nCV ዎትን በPDF ወይም በ . docx መልክ ያጋሩ⁉️', {
@@ -535,12 +607,12 @@ function Applay_withcv(chatId,job,msg) {
 async function Applaywith_Normal(chatId,job) {
   // whichjob_applay, phoneNumber, username, aboutText, jobsId
   console.log(chatId);
-  // console.log(userState[chatId]);
+  console.log(userState[chatId]);
   const whichjob_applay=userState[chatId].whichJobApply;
   const phoneNumber=userState[chatId].phoneNumber;
   const username=userState[chatId].username;
   const aboutText=userState[chatId].aboutText;
-  // console.log(job);
+  console.log(job);
   try {
 
     await bot.sendMessage(job.telegram_id, `#d${chatId}\nአዲስ አመልካች:\nየመ/ቁ፦: ${job.id}\nያመለከቱበት የስራ መደብ፦ ${whichjob_applay}\nየአመልካች ስልክ ቁጥር፦ +${phoneNumber}\nየአመልካች ቴሌግራም ፦ @${username}\nየአመልካች ሀሳብ እና አስተያየት፦\n👇👇👇👇👇👇👇👇👇👇👇👇👇👇\n ${aboutText}

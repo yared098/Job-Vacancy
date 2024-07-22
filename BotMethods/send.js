@@ -30,9 +30,9 @@ async function sendPhotoAndPin(bot, botUsername, channelId) {
     // Pin the sent message to the top of the channel
     await bot.pinChatMessage(channelId, sentMessage.message_id);
 
-    console.log('Photo sent with buttons and pinned successfully.');
+    // console.log('Photo sent with buttons and pinned successfully.');
   } catch (error) {
-    console.error('Error sending photo with buttons and pinning:', error);
+    // console.error('Error sending photo with buttons and pinning:', error);
   }
 }
 
